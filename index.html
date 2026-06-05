@@ -1,0 +1,1030 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StockBreech</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+        }
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;700;800&display=swap');
+        body {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .vhsactive::before {
+            content: " ";
+            display: block;
+            position: fixed;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.35) 50%), linear-gradient(90deg, rgba(0, 255, 200, 0.03), rgba(0, 0, 0, 0), rgba(255, 0, 100, 0.03));
+            z-index: 99999;
+            background-size: 100% 4px, 6px 100%;
+            pointer-events: none;
+        }
+        /* Dynamic CRT Electron Gun Bloom Overlay */
+.vhsactive::after {
+    content: " ";
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none; 
+    z-index: 99998; 
+    background: radial-gradient(
+        circle 150px at var(--mouse-x, -999px) var(--mouse-y, -999px),
+        rgba(16, 185, 129, 0.08) 0%,      
+        rgba(255, 255, 255, 0.03) 40%,    
+        rgba(0, 0, 0, 0) 100%
+    );
+    mix-blend-mode: screen;
+}
+        @keyframes vhsflicker {
+            0% { opacity: 0.99; }
+            50% { opacity: 1; }
+            100% { opacity: 0.98; }
+        }
+        .vhsactive {
+            animation: vhsflicker 0.2s infinite;
+            filter: contrast(1.15) brightness(1.05) saturate(1.15);
+        }
+        .vhsstaticbar {
+            position: fixed;
+            top: -100px;
+            left: 0;
+            width: 100%;
+            height: 20px;
+            background: rgba(0, 255, 150, 0.05);
+            opacity: 0.2;
+            filter: blur(4px);
+            z-index: 100000;
+            pointer-events: none;
+            display: none;
+        }
+        .vhsactive .vhsstaticbar {
+            display: block;
+            animation: staticmove 10s linear infinite;
+        }
+        @keyframes staticmove {
+            0% { top: -10%; }
+            100% { top: 110%; }
+        }
+        .quantumglow {
+            box-shadow: 0 0 15px rgba(34, 197, 94, 0.1);
+        }
+        .dark .quantumglow {
+            box-shadow: 0 0 20px rgba(0, 255, 149, 0.12);
+        }
+        .customscrollbar::-webkit-scrollbar { width: 4px; }
+        .customscrollbar::-webkit-scrollbar-track { background: transparent; }
+        .customscrollbar::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 4px; }
+        .dark .customscrollbar::-webkit-scrollbar-thumb { background: #0f172a; }
+        .customscrollbar:hover::-webkit-scrollbar-thumb { background: #10b981; }
+    </style>
+</head>
+<body class="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 min-h-screen flex flex-col justify-between transition-colors duration-300 selection:bg-emerald-500 selection:text-slate-950 vhsactive">
+    <div id="bootscreen" class="fixed inset-0 bg-slate-950 z-[101000] flex flex-col p-8 font-mono text-emerald-500 text-sm transition-opacity duration-700 ease-out">
+        <div id="boottext" class="whitespace-pre-wrap leading-relaxed"></div>
+        <div class="animate-pulse mt-1">_</div>
+    </div>
+    <div id="weekendwarning" class="hidden bg-rose-950 border-b border-rose-800 text-rose-400 px-4 py-2 text-center text-xs font-bold tracking-widest uppercase shadow-lg transition-all z-10">
+        [!] terminal offline, wait for the week to start.
+    </div>
+    <header class="bg-slate-100 dark:bg-slate-950 p-6 border-b border-slate-200 dark:border-slate-800 shadow-xl relative overflow-hidden transition-colors duration-300">
+        <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-emerald-900/10 dark:from-emerald-950/20 via-transparent to-transparent pointer-events-none"></div>
+        <div class="container mx-auto flex justify-between items-center relative z-10">
+            <div>
+                <h1 class="text-xl md:text-2xl font-black tracking-tighter text-emerald-600 dark:text-emerald-400 flex items-center gap-2">
+                    StockBreech <span class="text-[10px] bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-800 px-1.5 py-0.5 rounded font-normal tracking-normal animate-pulse">PRE-RELEASE</span>
+                </h1>
+                <span class="text-xs text-slate-400 dark:text-slate-500 uppercase tracking-widest block mt-0.5">active archive</span>
+            </div>  
+            <div class="flex items-center gap-3">
+                <a href="https://github.com/YOUR_GITHUB_USERNAME" target="_blank" rel="noopener noreferrer" title="GitHub Account" class="p-2.5 rounded border border-slate-300 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-emerald-500 dark:hover:text-emerald-400 hover:border-emerald-500 transition-all shadow-inner">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"></path><path d="M9 18c-4.51 2-5-2-7-2"></path></svg>
+                </a>
+                <a href="https://finnhub.io/" target="_blank" rel="noopener noreferrer" title="Finnhub Market Data" class="p-2.5 rounded border border-slate-300 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-emerald-500 dark:hover:text-emerald-400 hover:border-emerald-500 transition-all shadow-inner">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+                </a>
+                <button id="retrofilterbtn" onclick="toggleretromode()" class="p-2.5 rounded border border-slate-300 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-emerald-500 dark:hover:text-emerald-400 hover:border-emerald-500 transition-all shadow-inner">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275Z"/></svg>
+                </button>
+                <button id="themetoggle" class="p-2.5 rounded border border-slate-300 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-emerald-500 dark:hover:text-emerald-400 transition-all">
+                    <svg id="moonicon" class="w-4 h-4 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+                    <svg id="sunicon" class="w-4 h-4 block dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                </button>
+            </div>
+        </div>
+    </header>
+    <main class="container mx-auto p-6 flex-grow">
+        <div class="max-w-7xl mx-auto mb-8">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-3 border-b border-slate-200 dark:border-slate-800 pb-3">
+                <h2 class="text-xs font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">main registry</h2>
+                <div class="flex items-center gap-2">
+                    <input id="customtickerinput" type="text" placeholder="inject ticker" class="bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded px-3 py-1.5 text-xs uppercase tracking-wider font-bold focus:outline-none focus:border-emerald-500 text-slate-800 dark:text-slate-200 w-36 text-center placeholder:text-slate-400 dark:placeholder:text-slate-700">
+                    <button id="addtickerbtn" class="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs px-4 py-1.5 rounded transition tracking-widest">INJECT</button>
+                </div>
+            </div>
+            <div id="assetcardsgrid" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3"></div>
+            <p id="errormessage" class="text-rose-600 dark:text-rose-400 text-xs mt-4 hidden text-center font-bold tracking-wide uppercase bg-rose-100 dark:bg-rose-950/30 border border-rose-300 dark:border-rose-900/50 py-2 rounded"></p>
+            <p id="lastupdated" class="text-slate-400 dark:text-slate-500 text-xs mt-3 hidden text-center tracking-wider">LAST SYNC: <span id="timespan" class="text-slate-700 dark:text-slate-300 font-bold"></span></p>
+        </div>
+        <div id="maincontent" class="hidden flex flex-col md:flex-row gap-6 max-w-7xl mx-auto">
+            <div id="matrixsidebar" class="w-full md:w-60 bg-slate-50 dark:bg-slate-950 p-4 rounded border border-slate-200 dark:border-slate-800 space-y-3 shrink-0 h-fit">
+                <div class="border-b border-slate-200 dark:border-slate-800 pb-2 mb-2">
+                    <h3 class="text-slate-400 dark:text-slate-500 text-[11px] font-bold uppercase tracking-widest flex items-center gap-1.5">
+                        <svg class="w-3.5 h-3.5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+                        Module Registry
+                    </h3>
+                </div>
+                <div class="flex flex-col gap-1.5 font-mono">
+                    <button onclick="toggleworkspacemodule('spotpricecard', this)" class="w-full text-left bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 hover:border-emerald-500/50 p-2 rounded text-[10px] flex justify-between items-center transition-all">
+                        <span class="text-slate-500 dark:text-slate-400">price</span>
+                        <span class="statusText text-emerald-500 font-bold">[ON]</span>
+                    </button>
+                    <button onclick="toggleworkspacemodule('frameworkcard', this)" class="w-full text-left bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 hover:border-emerald-500/50 p-2 rounded text-[10px] flex justify-between items-center transition-all">
+                        <span class="text-slate-500 dark:text-slate-400">framework</span>
+                        <span class="statusText text-emerald-500 font-bold">[ON]</span>
+                    </button>
+                    <button onclick="toggleworkspacemodule('assessmentcard', this)" class="w-full text-left bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 hover:border-emerald-500/50 p-2 rounded text-[10px] flex justify-between items-center transition-all">
+                        <span class="text-slate-500 dark:text-slate-400">assessment</span>
+                        <span class="statusText text-emerald-500 font-bold">[ON]</span>
+                    </button>
+                    <button onclick="toggleworkspacemodule('memocard', this)" class="w-full text-left bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 hover:border-emerald-500/50 p-2 rounded text-[10px] flex justify-between items-center transition-all">
+                        <span class="text-slate-500 dark:text-slate-400">memo logger</span>
+                        <span class="statusText text-emerald-500 font-bold">[ON]</span>
+                    </button>
+                    <button onclick="toggleworkspacemodule('manifestcard', this)" class="w-full text-left bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 hover:border-emerald-500/50 p-2 rounded text-[10px] flex justify-between items-center transition-all">
+                        <span class="text-slate-500 dark:text-slate-400">memo feed</span>
+                        <span class="statusText text-emerald-500 font-bold">[ON]</span>
+                    </button>
+                    <button onclick="toggleworkspacemodule('currencycard', this)" class="w-full text-left bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 hover:border-emerald-500/50 p-2 rounded text-[10px] flex justify-between items-center transition-all">
+                        <span class="text-slate-500 dark:text-slate-400">currency translator</span>
+                        <span class="statusText text-emerald-500 font-bold">[ON]</span>
+                    </button>
+                    <button onclick="toggleworkspacemodule('graphcard', this)" class="w-full text-left bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 hover:border-emerald-500/50 p-2 rounded text-[10px] flex justify-between items-center transition-all">
+                        <span class="text-slate-500 dark:text-slate-400">history graph</span>
+                        <span class="statusText text-emerald-500 font-bold">[ON]</span>
+                    </button>
+                </div>
+            </div>
+            <div class="flex-grow space-y-6 select-none">
+                <div id="stockdashboard" class="grid grid-cols-1 md:grid-cols-3 gap-6">  
+                    <div id="spotpricecard" class="bg-slate-50 dark:bg-slate-950 p-6 rounded border border-slate-200 dark:border-slate-800 transition relative overflow-hidden quantumglow">
+                        <h3 class="text-slate-400 dark:text-slate-500 text-xs font-bold uppercase tracking-widest">spot price</h3>
+                        <p id="stockticker" class="text-[10px] text-emerald-600 dark:text-emerald-500 font-bold tracking-widest mt-1 uppercase"></p>
+                        <p id="currentprice" class="text-3xl font-black mt-2 text-slate-800 dark:text-slate-100 tracking-tight">$0.00</p>
+                        <span id="pricechange" class="text-xs font-bold block mt-1 tracking-wider">0.00 (0.00%)</span>
+                    </div>
+                    <div id="frameworkcard" class="bg-slate-50 dark:bg-slate-950 p-6 rounded border border-slate-200 dark:border-slate-800 transition flex flex-col justify-between">
+                        <div>
+                            <h3 class="text-slate-400 dark:text-slate-500 text-xs font-bold uppercase tracking-widest">framework</h3>
+                        </div>
+                        <div class="space-y-2 mt-4">
+                            <div class="flex justify-between text-xs">
+                                <span class="text-slate-400 dark:text-slate-500 uppercase tracking-wider">Upper:</span>
+                                <span id="dailyhigh" class="font-bold text-emerald-600 dark:text-emerald-400">$0.00</span>
+                            </div>
+                            <div class="flex justify-between text-xs">
+                                <span class="text-slate-400 dark:text-slate-500 uppercase tracking-wider">Lower:</span>
+                                <span id="dailylow" class="font-bold text-rose-600 dark:text-rose-400">$0.00</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="assessmentcard" class="bg-slate-50 dark:bg-slate-950 p-6 rounded border border-slate-200 dark:border-slate-800 flex flex-col justify-between transition">
+                        <div>
+                            <h3 class="text-slate-400 dark:text-slate-500 text-xs font-bold uppercase tracking-widest">assessment</h3>
+                            <p class="text-[10px] text-slate-400 dark:text-slate-600 uppercase tracking-wider mt-1">algorithm</p>
+                        </div>
+                        <div class="my-3">
+                            <span id="predictionsignal" class="text-xs font-black px-2.5 py-1 rounded inline-block bg-slate-200 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 text-slate-600 dark:text-slate-400 tracking-widest">
+                                NEUTRAL
+                            </span>
+                        </div>
+                        <p id="predictionreasoning" class="text-xs text-slate-500 dark:text-slate-400">active pipeline stable</p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div id="memocard" class="bg-slate-50 dark:bg-slate-950 p-6 rounded border border-slate-200 dark:border-slate-800 flex flex-col justify-between h-[280px]">
+                        <div>
+                            <div class="flex justify-between items-start border-b border-slate-200 dark:border-slate-800 pb-3 mb-4">
+                                <div>
+                                    <h3 class="text-slate-400 text-xs font-bold uppercase tracking-widest">Memo</h3>
+                                    <p class="text-[10px] text-slate-550 dark:text-slate-600 uppercase tracking-wider mt-0.5">observe the numbers</p>
+                                </div>
+                                <div id="memodeltabadge" class="hidden text-[10px] font-bold px-2 py-0.5 rounded border tracking-wider"></div>
+                            </div>
+                            <textarea id="memotextarea" placeholder="write anything you want" class="w-full h-24 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded p-3 text-xs focus:outline-none focus:border-emerald-500 text-slate-800 dark:text-slate-200 resize-none font-mono placeholder:text-slate-400 dark:placeholder:text-slate-700 focus:ring-1 focus:ring-emerald-950"></textarea>
+                        </div>
+                        <div class="flex justify-between items-center mt-4">
+                            <span id="memotimestamp" class="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-wider">NO LOGS COMMITTED</span>
+                            <div class="flex gap-2">
+                                <button id="savememobtn" class="bg-slate-200 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-emerald-500 hover:text-slate-950 dark:hover:bg-emerald-500 dark:hover:text-slate-950 font-bold text-xs px-4 py-2 rounded transition uppercase tracking-widest">save memo</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="manifestcard" class="bg-slate-50 dark:bg-slate-950 p-6 rounded border border-slate-200 dark:border-slate-800 flex flex-col h-[280px]">
+                        <div class="flex justify-between items-center border-b border-slate-200 dark:border-slate-800 pb-3 mb-4">
+                            <h3 class="text-slate-400 text-xs font-bold uppercase tracking-widest">Memo Manifest</h3>
+                            <button id="deletememobtn" class="bg-transparent text-slate-400 hover:text-rose-500 text-[10px] font-bold px-2 py-0.5 rounded transition tracking-widest hidden border border-transparent hover:border-rose-300 dark:hover:border-rose-900/50">PURGE ALL</button>
+                        </div>
+                        <div id="manifestfeed" class="flex-grow overflow-y-auto space-y-3 pr-2 customscrollbar"></div>
+                        <div class="border-t border-slate-200 dark:border-slate-800 pt-3 mt-4 text-[10px] uppercase tracking-widest text-center text-slate-400 dark:text-slate-600 shrink-0">
+                            memo saved on commit
+                        </div>
+                    </div>
+                    <div id="currencycard" class="bg-slate-50 dark:bg-slate-950 p-6 rounded border border-slate-200 dark:border-slate-800 flex flex-col justify-between h-[280px]">
+                        <div>
+                            <div class="flex justify-between items-center border-b border-slate-200 dark:border-slate-800 pb-3 mb-4">
+                                <div>
+                                    <h3 class="text-slate-400 text-xs font-bold uppercase tracking-widest">Currency Matrix</h3>
+                                    <p class="text-[10px] text-slate-500 dark:text-slate-600 uppercase tracking-wider mt-0.5">funds translation pipeline</p>
+                                </div>
+                            </div>
+                            <div class="space-y-3 mt-1">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-[10px] text-slate-400 dark:text-slate-500 w-12 font-bold uppercase tracking-wider">Base:</span>
+                                    <input id="convertamountinput" type="number" value="1000" class="flex-grow bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded px-2.5 py-1 text-xs font-mono focus:outline-none focus:border-emerald-500 text-slate-800 dark:text-slate-200" placeholder="USD Amount">
+                                    <span class="text-[10px] font-black text-slate-400 dark:text-slate-500 pr-1">USD</span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-[10px] text-slate-400 dark:text-slate-500 w-12 font-bold uppercase tracking-wider">Target:</span>
+                                    <select id="converttargetselect" class="flex-grow bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded px-2 py-1 text-xs font-mono focus:outline-none focus:border-emerald-500 text-slate-800 dark:text-slate-200 cursor-pointer">
+                                        <option value="EUR">EUR (€) - European</option>
+                                        <option value="JPY">JPY (¥) - Japan</option>
+                                        <option value="GBP">GBP (£) - United Kingdom</option>
+                                        <option value="CAD">CAD ($) - Canada</option>
+                                        <option value="AUD">AUD ($) - Australia</option>
+                                        <option value="BTC">BTC (₿) - Bitcoin</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="border-t border-slate-200 dark:border-slate-800 pt-3 mt-2 flex flex-col gap-2 shrink-0">
+                            <div class="flex justify-between items-center bg-white dark:bg-slate-900 p-2 rounded border border-slate-200 dark:border-slate-800/60 min-h-[38px]">
+                                <span class="text-[9px] uppercase text-slate-400 dark:text-slate-600 font-bold tracking-wider">OUTPUT MATRIX:</span>
+                                <span id="convertresultdisplay" class="text-xs font-bold font-mono text-emerald-600 dark:text-emerald-400 tracking-wide">--</span>
+                            </div>
+                            <button id="translatefundsbtn" onclick="executecurrencytranslation()" class="w-full bg-slate-200 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-emerald-500 hover:text-slate-950 dark:hover:bg-emerald-500 dark:hover:text-slate-950 font-bold text-xs py-2 rounded transition uppercase tracking-widest">
+                                TRANSLATE FUNDS
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div id="graphcard" class="bg-slate-50 dark:bg-slate-950 p-6 rounded border border-slate-200 dark:border-slate-800 relative overflow-hidden">
+                    <div class="flex justify-between items-center mb-6">
+                        <div class="flex items-center gap-3">
+                            <h3 id="charttitle" class="text-slate-400 text-xs font-bold uppercase tracking-widest">History Graph</h3>
+                            <span id="chartsourcenote" class="text-[10px] font-bold tracking-widest uppercase"></span>
+                        </div>
+                        <button id="manualrefreshbtn" onclick="forcereloaddata()" class="p-1.5 rounded border border-slate-300 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-500 hover:text-emerald-500 hover:border-emerald-500 transition-all text-[10px] font-bold tracking-widest uppercase flex items-center gap-1.5">
+                            <svg id="refreshicon" class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.253 8H18"></path></svg>
+                            FORCE SYNC
+                        </button>
+                    </div>
+                    <div class="relative h-64 w-full">
+                        <canvas id="stockchart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+    <div class="vhsstaticbar"></div>
+    <footer class="bg-slate-100 dark:bg-slate-950 p-4 border-t border-slate-200 dark:border-slate-800 text-center text-[10px] uppercase tracking-widest text-slate-400 dark:text-slate-600 transition-colors duration-300">
+        built using github actions, a bad backend, and pure hopes and dreams
+    </footer>
+    <script>
+       var audiocontext = new (window.AudioContext || window.webkitAudioContext)();
+       function playretrosound(frequency, soundtype, soundduration) {
+           try {
+            if (!soundtype) soundtype = 'square';
+            if (!soundduration) soundduration = 0.1;
+                if (audiocontext.state === 'suspended') {
+                    audiocontext.resume();
+                }
+              var oscillator = audiocontext.createOscillator();
+              var gainnode = audiocontext.createGain();      
+              oscillator.type = soundtype; 
+              oscillator.frequency.value = frequency;
+              gainnode.gain.setValueAtTime(0.015, audiocontext.currentTime); 
+              gainnode.gain.exponentialRampToValueAtTime(0.001, audiocontext.currentTime + soundduration);          
+              oscillator.connect(gainnode);
+              gainnode.connect(audiocontext.destination);
+              oscillator.start();
+              oscillator.stop(audiocontext.currentTime + soundduration);
+           } catch(e) { 
+              console.warn("Audio Context error");
+           }
+       }
+       var bootscreenelement = document.getElementById('bootscreen');
+       var boottextdiv = document.getElementById('boottext');
+       var bootlinesarray = ["LOADING MAIN STOCKBREECH UI","MAKING SURE DATABASE IS WORKING","GRABBING DATA","CHECKING DATABASE IS GIVING TRUE INFORMATION","SUCCESSFUL STARTUP"];
+       var bootsequenceindex = 0;
+       function runbootsequence() {
+           if (!bootscreenelement) return;
+           if (bootsequenceindex < bootlinesarray.length) {
+               var newline = document.createElement('div');
+               newline.innerText = bootlinesarray[bootsequenceindex];
+               boottextdiv.appendChild(newline);
+               playretrosound(550 + (bootsequenceindex * 80), 'square', 0.06);
+               bootsequenceindex = bootsequenceindex + 1;
+               setTimeout(runbootsequence, Math.random() * 300 + 150); 
+           } else {
+               setTimeout(function() {
+                   playretrosound(880, 'sine', 0.25);
+                   bootscreenelement.classList.add('opacity-0');
+                   setTimeout(function() {
+                       bootscreenelement.remove();
+                       startmainapp();
+                   }, 700);
+               }, 500);
+           }
+       }
+       window.addEventListener('DOMContentLoaded', runbootsequence);
+       var globalchartinstance = null; 
+       var selectedticker = '';
+       var currentactiveprice = 0; 
+       var trackingcharttimestamps = [];
+       var trackingchartprices = [];
+       var defragloopid = null;
+       var defaulttickerslist = ['NVDA', 'AAPL', 'MSFT', 'TSLA', 'AMZN', 'GOOGL', 'META', 'NFLX', 'AMD', 'INTC', 'SPY', 'QQQ', 'DIS', 'BA', 'WMT', 'JPM'];
+       var themetogglebutton = document.getElementById('themetoggle');
+       var roothtmltag = document.documentElement;
+       themetogglebutton.addEventListener('click', function() {
+           roothtmltag.classList.toggle('dark');
+           playretrosound(400, 'sine', 0.05);
+           if (trackingcharttimestamps.length > 0) {
+               drawthechart(selectedticker, trackingcharttimestamps, trackingchartprices);
+           }
+       });
+       function toggleretromode() {
+           document.body.classList.toggle('vhsactive');
+           playretrosound(480, 'sawtooth', 0.04);
+       }
+       function toggleworkspacemodule(cardid, btnelement) {
+           var targetcard = document.getElementById(cardid);
+           var label = btnelement.querySelector('.statusText');
+           if (targetcard.classList.contains('hidden')) {
+               targetcard.classList.remove('hidden');
+               label.innerText = '[ON]';
+               label.className = "statusText text-emerald-500 font-bold";
+               playretrosound(620, 'sine', 0.04);
+           } else {
+               targetcard.classList.add('hidden');
+               label.innerText = '[OFF]';
+               label.className = "statusText text-rose-500 font-bold";
+               playretrosound(320, 'sawtooth', 0.04);
+           }
+       }
+       function startmainapp() {
+           var currentdateobject = new Date();
+           var currentdaynumber = currentdateobject.getDay();
+           if (currentdaynumber === 0 || currentdaynumber === 6) {
+               document.getElementById('weekendwarning').classList.remove('hidden');
+           }
+           document.getElementById('addtickerbtn').addEventListener('click', addcustomticker);
+           document.getElementById('customtickerinput').addEventListener('keypress', function(event) {
+               if (event.key === 'Enter') {
+                   addcustomticker();
+               }
+           });
+           document.getElementById('savememobtn').addEventListener('click', savecurrentmemo);
+           document.getElementById('deletememobtn').addEventListener('click', deleteallmemos);
+           renderallcards();
+           switchactiveasset(defaulttickerslist[0]);
+           setInterval(function() {
+               if (selectedticker != '') {
+                   loadtickerdata(selectedticker, true);
+               }
+           }, 3600000);
+       }
+       async function forcereloaddata() {
+           if (selectedticker == '') return;
+           var syncicon = document.getElementById('refreshicon');
+           syncicon.classList.add('animate-spin');
+           playretrosound(700, 'sine', 0.05);
+           await loadtickerdata(selectedticker, true);
+           setTimeout(function() {
+               syncicon.classList.remove('animate-spin');
+           }, 600);
+       }
+       function getfulltickerlist() {
+           var savedcustomlist = JSON.parse(localStorage.getItem('customtickers'));
+           if (!savedcustomlist) {
+               savedcustomlist = [];
+           }
+           var compiledlist = [];
+           for (var i = 0; i < defaulttickerslist.length; i++) {
+               compiledlist.push(defaulttickerslist[i]);
+           }
+           for (var j = 0; j < savedcustomlist.length; j++) {
+               compiledlist.push(savedcustomlist[j]);
+           }
+           return compiledlist;
+       }
+       function renderallcards() {
+           var cardcontainer = document.getElementById('assetcardsgrid');
+           cardcontainer.innerHTML = '';      
+           var pinnedlist = JSON.parse(localStorage.getItem('pinnedtickers')) || [];
+           var customlist = JSON.parse(localStorage.getItem('customtickers')) || [];
+           var combinedlist = getfulltickerlist();
+           combinedlist.sort(function(itema, itemb) {
+               var isapinned = pinnedlist.includes(itema);
+               var isbpinned = pinnedlist.includes(itemb);
+               if (isapinned && !isbpinned) return -1;
+               if (!isapinned && isbpinned) return 1;
+               return 0;
+           });
+           for (var i = 0; i < combinedlist.length; i++) {
+               var currentloopticker = combinedlist[i];
+               var singlecard = document.createElement('div');
+               singlecard.id = "card" + currentloopticker;  
+               var checkpinned = pinnedlist.includes(currentloopticker);
+               var checkcustom = customlist.includes(currentloopticker);
+               var checkactive = (currentloopticker === selectedticker);
+               if (checkactive) {
+                   singlecard.className = "relative bg-slate-100 dark:bg-slate-900 border-emerald-500 p-3 rounded shadow cursor-pointer text-center font-bold tracking-wider text-emerald-600 dark:text-emerald-400 border-2 ring-1 ring-emerald-900/20 dark:ring-emerald-950 select-none";
+               } else {
+                   singlecard.className = "relative bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-3 rounded shadow cursor-pointer text-center font-bold tracking-wider transition-all hover:border-slate-400 dark:hover:border-slate-700 text-slate-400 dark:text-slate-500 hover:text-slate-800 dark:hover:text-slate-100 select-none";
+               }
+               var deletebuttontemplate = '';
+               if (checkcustom) {
+                   deletebuttontemplate = '<button class="deletebtn absolute top-1 left-1.5 text-xs text-slate-400 dark:text-slate-600 hover:text-rose-500 transition-all font-light">×</button>';
+               }
+               var pinclassstyle = 'text-slate-300 dark:text-slate-700 hover:text-amber-500';
+               if (checkpinned) {
+                   pinclassstyle = 'text-amber-500 dark:text-amber-400 scale-110';
+               }
+               singlecard.innerHTML = deletebuttontemplate + '<button class="pinbtn absolute top-1 right-1.5 text-xs transition-all ' + pinclassstyle + '" style="font-style:normal;">★</button>' + '<div class="text-xs md:text-sm uppercase pt-1">' + currentloopticker + '</div>' + '<div class="text-[9px] text-slate-400 dark:text-slate-600 font-normal mt-0.5 tracking-tight">' + (checkcustom ? 'user added' : 'primary') + '</div>';
+               makecardlisteners(singlecard, currentloopticker, checkcustom);
+               cardcontainer.appendChild(singlecard);
+           }
+       }
+       function makecardlisteners(targetcard, targetticker, iscustomitem) {
+           targetcard.querySelector('.pinbtn').addEventListener('click', function(event) {
+               event.stopPropagation(); 
+               toggletickerpin(targetticker);
+           });
+           if (iscustomitem) {
+               targetcard.querySelector('.deletebtn').addEventListener('click', function(event) {
+                   event.stopPropagation();
+                   removecustomticker(targetticker);
+               });
+           }
+           targetcard.addEventListener('click', function() { 
+               switchactiveasset(targetticker); 
+           });
+       }
+       async function addcustomticker() {
+           var tickerinput = document.getElementById('customtickerinput');
+           var plaintickertext = tickerinput.value.trim().toUpperCase();
+           if (plaintickertext == '') return;
+           var existinglist = getfulltickerlist();
+           if (existinglist.includes(plaintickertext)) {
+               triggererrorbanner("node is already active");
+               return;
+           }
+           try {
+               var storedcustoms = JSON.parse(localStorage.getItem('customtickers')) || [];
+               storedcustoms.push(plaintickertext);
+               localStorage.setItem('customtickers', JSON.stringify(storedcustoms));
+               tickerinput.value = '';
+               playretrosound(650, 'square', 0.08);
+               renderallcards();
+               switchactiveasset(plaintickertext);
+           } catch (err) {
+               triggererrorbanner("terminal issue");
+           }
+       }
+       function removecustomticker(targetticker) {
+           var customsaved = JSON.parse(localStorage.getItem('customtickers')) || [];
+           var filtercustom = [];
+           for (var i = 0; i < customsaved.length; i++) {
+               if (customsaved[i] !== targetticker) {
+                   filtercustom.push(customsaved[i]);
+               }
+           }
+           localStorage.setItem('customtickers', JSON.stringify(filtercustom));
+           var pinnedsaved = JSON.parse(localStorage.getItem('pinnedtickers')) || [];
+           var filterpinned = [];
+           for (var j = 0; j < pinnedsaved.length; j++) {
+               if (pinnedsaved[j] !== targetticker) {
+                   filterpinned.push(pinnedsaved[j]);
+               }
+           }
+           localStorage.setItem('pinnedtickers', JSON.stringify(filterpinned));
+           var memologs = JSON.parse(localStorage.getItem('systemmanifestlogs')) || {};
+           if (memologs[targetticker]) {
+               delete memologs[targetticker];
+               localStorage.setItem('systemmanifestlogs', JSON.stringify(memologs));
+           }
+           playretrosound(250, 'sawtooth', 0.1);
+           renderallcards();
+           if (selectedticker === targetticker) {
+               selectedticker = '';
+               switchactiveasset(defaulttickerslist[0]);
+           }
+       }
+       function triggererrorbanner(errortextmessage) {
+           var banner = document.getElementById('errormessage');
+           banner.innerText = ">> ERROR: " + errortextmessage;
+           banner.classList.remove('hidden');
+           playretrosound(300, 'sawtooth', 0.15);
+           setTimeout(function() { 
+               banner.classList.add('hidden'); 
+           }, 4000);
+       }
+       function toggletickerpin(targetticker) {
+           var currentpins = JSON.parse(localStorage.getItem('pinnedtickers')) || [];
+           if (currentpins.includes(targetticker)) {
+               var newpins = [];
+               for (var i = 0; i < currentpins.length; i++) {
+                   if (currentpins[i] !== targetticker) {
+                       newpins.push(currentpins[i]);
+                   }
+               }
+               currentpins = newpins;
+               playretrosound(350, 'sine', 0.05);
+           } else {
+               currentpins.push(targetticker);
+               playretrosound(520, 'sine', 0.05);
+           }
+           localStorage.setItem('pinnedtickers', JSON.stringify(currentpins));
+           renderallcards();
+       }
+       async function switchactiveasset(targetticker) {
+           if (selectedticker === targetticker) return;   
+           if (defragloopid) {
+               clearInterval(defragloopid);
+               defragloopid = null;
+           }
+           selectedticker = targetticker;
+           playretrosound(440, 'square', 0.03);
+           renderallcards();
+           await loadtickerdata(targetticker);
+       }
+       function runpriceanimation(finalc, finalh, finall, finald, finaldp) {
+           var pricelabel = document.getElementById('currentprice');
+           var highlabel = document.getElementById('dailyhigh');
+           var lowlabel = document.getElementById('dailylow');
+           var changelabel = document.getElementById('pricechange');
+           var currentframe = 0;
+           var maxframes = 10;
+           defragloopid = setInterval(function() {
+               var scramblec = (Math.random() * finalc * 0.4) + (finalc * 0.8);
+               var scrambleh = scramblec * (1 + Math.random() * 0.02);
+               var scramblel = scramblec * (1 - Math.random() * 0.02);
+               var scrambled = (Math.random() - 0.5) * (finalc * 0.05);
+               var scrambledp = (Math.random() - 0.5) * 5;
+               pricelabel.innerText = "$" + scramblec.toFixed(2);
+               highlabel.innerText = "$" + scrambleh.toFixed(2);
+               lowlabel.innerText = "$" + scramblel.toFixed(2);
+               var directionsign = scrambled >= 0 ? '▲ +' : '▼ ';
+               changelabel.innerText = directionsign + scrambled.toFixed(2) + " (" + scrambledp.toFixed(2) + "%)";
+               changelabel.className = "text-xs font-bold block mt-1 tracking-wider text-slate-400 dark:text-slate-500 animate-pulse";
+               currentframe = currentframe + 1;
+               if (currentframe >= maxframes) {
+                   clearInterval(defragloopid);
+                   defragloopid = null;
+                   pricelabel.innerText = "$" + finalc.toFixed(2);
+                   highlabel.innerText = "$" + finalh.toFixed(2);
+                   lowlabel.innerText = "$" + finall.toFixed(2);
+                   var finaldirectionsign = finald >= 0 ? '▲ +' : '▼ ';
+                   changelabel.innerText = finaldirectionsign + finald.toFixed(2) + " (" + finaldp.toFixed(2) + "%)";
+                   if (finald >= 0) {
+                       changelabel.className = "text-xs font-bold block mt-1 tracking-wider text-emerald-600 dark:text-emerald-400";
+                   } else {
+                       changelabel.className = "text-xs font-bold block mt-1 tracking-wider text-rose-600 dark:text-rose-400";
+                   }
+               }
+           }, 30);
+       }
+       function updateassessmentlogic(dval, dpval) {
+           var sigbox = document.getElementById('predictionsignal');
+           var rsnbox = document.getElementById('predictionreasoning');
+           sigbox.className = "text-xs font-black px-2.5 py-1 rounded inline-block border tracking-widest ";
+           if (dpval >= 1.5) {
+               sigbox.innerText = "STRONG EXCEL";
+               sigbox.className = sigbox.className + "bg-emerald-100 dark:bg-emerald-900/30 border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400";
+               rsnbox.innerText = "high upward volume detected";
+           } else if (dpval <= -1.5) {
+               sigbox.innerText = "STRONG EJECT";
+               sigbox.className = sigbox.className + "bg-rose-100 dark:bg-rose-900/30 border-rose-300 dark:border-rose-800 text-rose-700 dark:text-rose-400";
+               rsnbox.innerText = "heavy downward pressure";
+           } else if (dpval > 0) {
+               sigbox.innerText = "LEAN EXCEL";
+               sigbox.className = sigbox.className + "bg-emerald-50 dark:bg-emerald-950 border-emerald-200 dark:border-emerald-900 text-emerald-600 dark:text-emerald-500";
+               rsnbox.innerText = "slight positive drift";
+           } else if (dpval < 0) {
+               sigbox.innerText = "LEAN EJECT";
+               sigbox.className = sigbox.className + "bg-rose-50 dark:bg-rose-950 border-rose-200 dark:border-rose-900 text-rose-600 dark:text-rose-500";
+               rsnbox.innerText = "slight negative drift";
+           } else {
+               sigbox.innerText = "NEUTRAL";
+               sigbox.className = sigbox.className + "bg-slate-200 dark:bg-slate-900 border-slate-300 dark:border-slate-800 text-slate-600 dark:text-slate-400";
+               rsnbox.innerText = "active pipeline stable";
+           }
+       }
+       async function loadtickerdata(targetticker, bypassstorage) {
+           var displaycontainer = document.getElementById('maincontent');
+           var lastsynccontainer = document.getElementById('lastupdated');
+           var timestamplabel = document.getElementById('timespan');
+           var fetchedjsonobject = {};
+           var fetchfailed = false;
+           try {
+               var apiresponse = await fetch("./stock-data.json?t=" + new Date().getTime()); 
+               if (apiresponse.ok) {
+                   fetchedjsonobject = await apiresponse.json();
+                   document.getElementById('chartsourcenote').innerText = "SYNCED";
+                   document.getElementById('chartsourcenote').className = "text-[10px] font-bold tracking-widest uppercase text-emerald-500";
+               } else {
+                   fetchfailed = true;
+               }
+           } catch (error) {
+               fetchfailed = true;
+           }
+           if (fetchfailed) {
+               document.getElementById('chartsourcenote').innerText = "SIMULATED";
+               document.getElementById('chartsourcenote').className = "text-[10px] font-bold tracking-widest uppercase text-amber-500";
+           }
+           var assetprofile = fetchedjsonobject[targetticker];
+           if (!assetprofile || !assetprofile.current) {
+               var rawstringhash = 0;
+               for (var index = 0; index < targetticker.length; index++) {
+                   rawstringhash = targetticker.charCodeAt(index) + ((rawstringhash << 5) - rawstringhash);
+               }
+               var baselinecalculatedprice = Math.abs(rawstringhash % 340) + 35.20;
+               var singledaydelta = (Math.random() - 0.47) * (baselinecalculatedprice * 0.05);  
+               var buildingsimulatedhistory = [];
+               var incrementalprice = baselinecalculatedprice - singledaydelta;
+               var incrementaltime = Math.floor(Date.now() / 1000) - (24 * 3600);
+               for (var step = 0; step < 24; step++) {
+                   incrementalprice = incrementalprice + (Math.random() - 0.48) * (baselinecalculatedprice * 0.01);
+                   buildingsimulatedhistory.push({ t: incrementaltime, c: incrementalprice });
+                   incrementaltime = incrementaltime + 3600;
+               }
+               assetprofile = {
+                   current: {
+                       c: baselinecalculatedprice,
+                       h: baselinecalculatedprice + (baselinecalculatedprice * 0.015),
+                       l: baselinecalculatedprice - (baselinecalculatedprice * 0.015),
+                       d: singledaydelta,
+                       dp: (singledaydelta / baselinecalculatedprice) * 100,
+                       o: baselinecalculatedprice - singledaydelta
+                   },
+                   history: buildingsimulatedhistory
+               };
+           }
+           var marketmetrics = assetprofile.current;
+           currentactiveprice = marketmetrics.c;
+           displaycontainer.classList.remove('hidden');
+           displaycontainer.classList.add('flex');
+           if (lastsynccontainer && timestamplabel) {
+               lastsynccontainer.classList.remove('hidden');
+               timestamplabel.innerText = new Date().toLocaleTimeString();
+           }
+           document.getElementById('stockticker').innerText = targetticker;
+           runpriceanimation(marketmetrics.c, marketmetrics.h, marketmetrics.l, marketmetrics.d, marketmetrics.dp);
+           updateassessmentlogic(marketmetrics.d, marketmetrics.dp);
+           trackingcharttimestamps = [];
+           trackingchartprices = [];
+           for (var hidx = 0; hidx < assetprofile.history.length; hidx++) {
+               trackingcharttimestamps.push(assetprofile.history[hidx].t);
+               trackingchartprices.push(assetprofile.history[hidx].c);
+           }
+           drawthechart(targetticker, trackingcharttimestamps, trackingchartprices);
+           displaysavedmemos(targetticker);
+       }
+       function drawthechart(targetticker, timestamplist, numericalprices) {
+           var drawingcanvascontext = document.getElementById('stockchart').getContext('2d');
+           if (globalchartinstance) {
+               globalchartinstance.destroy();
+           }
+           var humanreadablelabels = [];
+           for (var i = 0; i < timestamplist.length; i++) {
+               var objectdate = new Date(timestamplist[i] * 1000);
+               var labelstring = (objectdate.getMonth() + 1) + "/" + objectdate.getDate() + " " + objectdate.getHours() + ":00";
+               humanreadablelabels.push(labelstring);
+           }
+           var dynamictickcolor = '#cbd5e1';
+           if (document.documentElement.classList.contains('dark')) {
+               dynamictickcolor = '#475569';
+           }
+           var dynamicgridcolor = 'rgba(241, 245, 249, 0.9)';
+           if (document.documentElement.classList.contains('dark')) {
+               dynamicgridcolor = 'rgba(30, 41, 59, 0.4)';
+           }
+           globalchartinstance = new Chart(drawingcanvascontext, {
+               type: 'line',
+               data: {
+                   labels: humanreadablelabels,
+                   datasets: [{
+                       label: targetticker + " Pipeline Delta",
+                       data: numericalprices,
+                       borderColor: '#10b981',
+                       borderWidth: 2,
+                       pointRadius: 1,
+                       pointHoverRadius: 4,
+                       backgroundColor: 'rgba(16, 185, 129, 0.03)',
+                       fill: true,
+                       tension: 0.15
+                   }]
+               },
+               options: {
+                   responsive: true,
+                   maintainAspectRatio: false,
+                   plugins: {
+                       legend: { display: false }
+                   },
+                   scales: {
+                       x: {
+                           grid: { display: false },
+                           ticks: {
+                               color: dynamictickcolor,
+                               font: { family: 'JetBrains Mono', size: 9 }
+                           }
+                       },
+                       y: {
+                           grid: { color: dynamicgridcolor },
+                           ticks: {
+                               color: dynamictickcolor,
+                               font: { family: 'JetBrains Mono', size: 9 }
+                           }
+                       }
+                   }
+               }
+           });
+       }
+       function displaysavedmemos(targetticker) {
+           var feedcontainer = document.getElementById('manifestfeed');
+           var purgebuttonelement = document.getElementById('deletememobtn');
+           feedcontainer.innerHTML = '';
+           var alllogsobject = JSON.parse(localStorage.getItem('systemmanifestlogs')) || {};
+           var explicittickerlogs = alllogsobject[targetticker] || [];
+           if (explicittickerlogs.length > 0) {
+               purgebuttonelement.classList.remove('hidden');
+               for (var i = 0; i < explicittickerlogs.length; i++) {
+                   var singlelognode = explicittickerlogs[i];
+                   var itemelement = document.createElement('div');
+                   itemelement.className = "bg-white dark:bg-slate-900 p-2.5 rounded border border-slate-200 dark:border-slate-800 text-xs space-y-1 relative";
+                   itemelement.innerHTML = '<div class="text-[9px] text-slate-400 dark:text-slate-600 font-bold tracking-tighter">' + singlelognode.time + ' // VALUE: $' + singlelognode.price.toFixed(2) + '</div>' + '<div class="text-slate-700 dark:text-slate-300 font-mono break-all">' + cleanuserinputhtml(singlelognode.text) + '</div>';
+                   feedcontainer.appendChild(itemelement);
+               }
+           } else {
+               purgebuttonelement.classList.add('hidden');
+               feedcontainer.innerHTML = '<div class="text-xs text-slate-400 dark:text-slate-700 italic text-center pt-12 uppercase tracking-widest">[ no entries found ]</div>';
+           }
+       }
+       function savecurrentmemo() {
+           if (selectedticker == '') return;
+           var textareainput = document.getElementById('memotextarea');
+           var inputstring = textareainput.value.trim();
+           if (inputstring == '') return;
+           var alllogsobject = JSON.parse(localStorage.getItem('systemmanifestlogs')) || {};
+           if (!alllogsobject[selectedticker]) {
+               alllogsobject[selectedticker] = [];
+           }
+           alllogsobject[selectedticker].unshift({
+               time: new Date().toLocaleString(),
+               price: currentactiveprice,
+               text: inputstring
+           });
+           localStorage.setItem('systemmanifestlogs', JSON.stringify(alllogsobject));
+           textareainput.value = '';
+           playretrosound(620, 'sine', 0.08);
+           var stamplabel = document.getElementById('memotimestamp');
+           stamplabel.innerText = "RECORD COMMITTED";
+           setTimeout(function() { 
+               stamplabel.innerText = "MEMO SAVED ON COMMIT"; 
+           }, 2000);
+           displaysavedmemos(selectedticker);
+       }
+       function deleteallmemos() {
+           if (selectedticker == '') return;
+           var alllogsobject = JSON.parse(localStorage.getItem('systemmanifestlogs')) || {};
+           if (alllogsobject[selectedticker]) {
+               delete alllogsobject[selectedticker];
+               localStorage.setItem('systemmanifestlogs', JSON.stringify(alllogsobject));
+           }
+           playretrosound(180, 'sawtooth', 0.2);
+           displaysavedmemos(selectedticker);
+       }
+       function executecurrencytranslation() {
+           var amountinput = document.getElementById('convertamountinput');
+           var targetselect = document.getElementById('converttargetselect');
+           var resultdisplay = document.getElementById('convertresultdisplay');
+           var baseamount = parseFloat(amountinput.value);
+           var targetcurrency = targetselect.value;
+           if (isNaN(baseamount) || baseamount <= 0) {
+               playretrosound(200, 'sawtooth', 0.15);
+               resultdisplay.innerText = "INVALID AMT";
+               resultdisplay.className = "text-xs font-bold font-mono text-rose-600 dark:text-rose-400 tracking-wide";
+               return;
+           }
+           var rates = { "EUR": 0.92, "JPY": 156.40, "GBP": 0.78, "CAD": 1.37, "AUD": 1.51, "BTC": 0.000015 };
+           var symbols = { "EUR": "€", "JPY": "¥", "GBP": "£", "CAD": "$", "AUD": "$", "BTC": "₿" };
+           var currentrate = rates[targetcurrency] || 1;
+           var symbol = symbols[targetcurrency] || "";
+           playretrosound(580, 'square', 0.04);
+           var calculatedvalue = baseamount * currentrate;
+           var formattedvalue = targetcurrency === 'BTC' ? symbol + calculatedvalue.toFixed(6) : symbol + calculatedvalue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+           var frame = 0;
+           var interval = setInterval(function() {
+               resultdisplay.innerText = "..." + Math.floor(Math.random() * 9999);
+               resultdisplay.className = "text-xs font-bold font-mono text-slate-400 dark:text-slate-600 tracking-wide animate-pulse";
+               frame++;
+               if (frame > 7) {
+                   clearInterval(interval);
+                   resultdisplay.innerText = formattedvalue + " " + targetcurrency;
+                   resultdisplay.className = "text-xs font-bold font-mono text-emerald-600 dark:text-emerald-400 tracking-wide";
+                   playretrosound(820, 'sine', 0.07);
+               }
+           }, 40);
+       }
+       function cleanuserinputhtml(dirtyhtmlstring) {
+           var rawcleanedstring = dirtyhtmlstring;
+           rawcleanedstring = rawcleanedstring.replace(/&/g, "&amp;");
+           rawcleanedstring = rawcleanedstring.replace(/</g, "&lt;");
+           rawcleanedstring = rawcleanedstring.replace(/>/g, "&gt;");
+           rawcleanedstring = rawcleanedstring.replace(/"/g, "&quot;");
+           rawcleanedstring = rawcleanedstring.replace(/'/g, "&#039;");
+           return rawcleanedstring;
+       }
+window.addEventListener('mousemove', (e) => {
+    const isVhsOn = document.body.classList.contains('vhsactive') || document.documentElement.classList.contains('vhsactive');
+    if (isVhsOn) {
+        document.documentElement.style.setProperty('--mouse-x', `${e.clientX}px`);
+        document.documentElement.style.setProperty('--mouse-y', `${e.clientY}px`);
+    }
+});
+let gameData = {
+    score: 0,
+    clickPower: 1,
+    idlePower: 0,
+    globalMultiplier: 1.0,
+    costs: { click: 10, idle: 50, mult: 250 }
+};
+
+let clickerChartInstance = null;
+let clickerGraphHistory = Array(20).fill(0); 
+let clickerGraphLabels = Array(20).fill('');
+
+function initClickerGraph() {
+    const canvasElement = document.getElementById('clickerChart');
+    if (!canvasElement) {
+        console.warn("Clicker Chart context element missing from viewport.");
+        return;
+    }
+
+    const ctx = canvasElement.getContext('2d');
+    clickerChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: clickerGraphLabels,
+            datasets: [{
+                data: clickerGraphHistory,
+                borderColor: '#10b981', 
+                borderWidth: 1.5,
+                pointRadius: 0,
+                fill: true,
+                backgroundColor: 'rgba(16, 185, 129, 0.05)',
+                tension: 0.25
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { display: false },
+                y: {
+                    grid: { color: 'rgba(30, 41, 59, 0.5)' },
+                    ticks: { color: '#475569', font: { size: 8, family: 'monospace' } }
+                }
+            }
+        }
+    });
+}
+setInterval(function() {
+    if (gameData.idlePower > 0) {
+        gameData.score += (gameData.idlePower * gameData.globalMultiplier);
+    }
+    tickClickerGraph();
+    updateClickerUI();
+}, 1000);
+function tickClickerGraph() {
+    if (!clickerChartInstance) return;
+    clickerGraphHistory.push(Math.floor(gameData.score));
+    clickerGraphLabels.push('');
+    if (clickerGraphHistory.length > 25) {
+        clickerGraphHistory.shift();
+        clickerGraphLabels.shift();
+    }
+    clickerChartInstance.update('none'); 
+}
+function toggleClicker() {
+    const modal = document.getElementById('clicker-modal');
+    const isOpening = modal.classList.contains('hidden');
+    modal.classList.toggle('hidden');
+    if (isOpening) {
+        if (!clickerChartInstance) {
+            setTimeout(initClickerGraph, 100);
+        } else {
+            setTimeout(function() {
+                clickerChartInstance.resize();
+                clickerChartInstance.update('none');
+            }, 50);
+        }
+    }
+}
+function mineData() {
+    gameData.score += (gameData.clickPower * gameData.globalMultiplier);
+    tickClickerGraph();
+    updateClickerUI();
+    if (typeof playretrosound === 'function') {
+        playretrosound(440, 'square', 0.03); 
+    }
+}
+function upgrades_people_upgrades(type) {
+    let cost = gameData.costs[type];
+    if (gameData.score >= cost) {
+        gameData.score -= cost; 
+        if (type === 'click') {
+            gameData.clickPower += 1;
+            gameData.costs.click = Math.floor(cost * 1.5);
+            if (typeof playretrosound === 'function') playretrosound(550, 'sine', 0.06);
+        } 
+        else if (type === 'idle') {
+            gameData.idlePower += 1;
+            gameData.costs.idle = Math.floor(cost * 1.6);
+            if (typeof playretrosound === 'function') playretrosound(650, 'triangle', 0.06);
+        } 
+        else if (type === 'mult') {
+            gameData.globalMultiplier += 0.5;
+            gameData.costs.mult = Math.floor(cost * 3.2);
+            if (typeof playretrosound === 'function') playretrosound(850, 'sawtooth', 0.1);
+        }
+        
+        tickClickerGraph();
+        updateClickerUI();
+    }
+}
+function updateClickerUI() {
+    document.getElementById('clicker-score').innerText = Math.floor(gameData.score);
+    document.getElementById('stat-pps').innerText = `AUTO: ${(gameData.idlePower * gameData.globalMultiplier).toFixed(1)}/s`;
+    document.getElementById('stat-mult').innerText = `MULT: x${gameData.globalMultiplier.toFixed(1)}`;
+    document.getElementById('upgrade-click').querySelector('.text-emerald-500').innerText = `CR: ${gameData.costs.click}`;
+    document.getElementById('upgrade-idle').querySelector('.text-emerald-500').innerText = `CR: ${gameData.costs.idle}`;
+    document.getElementById('upgrade-mult').querySelector('.text-emerald-500').innerText = `CR: ${gameData.costs.mult}`;
+}
+    </script>
+  <button onclick="toggleClicker()" class="fixed bottom-4 left-4 px-3 py-1 border border-slate-700 text-slate-500 hover:text-emerald-400 hover:border-emerald-400 transition-colors text-xs z-40 font-bold">
+    stockmarkert
+</button>
+
+<div id="clicker-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
+    <div class="border border-emerald-500 bg-slate-900 p-6 w-80 shadow-[0_0_15px_rgba(16,185,129,0.3)] flex flex-col items-center">
+        
+        <div class="w-full flex justify-between mb-4 border-b border-slate-700 pb-2">
+            <span class="text-emerald-500 text-sm font-bold">stockmarker</span>
+            <button onclick="toggleClicker()" class="text-red-500 hover:text-red-400 font-bold">[X]</button>
+        </div>
+
+        <div class="w-full flex justify-between text-[10px] text-slate-500 font-mono px-1 mb-2">
+            <span id="stat-pps">auto: 0/s</span>
+            <span id="stat-mult">mult: x1.0</span>
+        </div>
+        
+        <div class="text-slate-400 text-xs mb-1 font-mono">stocks gained</div>
+        <div id="clicker-score" class="text-5xl text-emerald-400 font-bold mb-6 font-mono tracking-tight">0</div>
+        
+        <button onclick="mineData()" class="w-full py-4 border border-emerald-500 text-emerald-400 hover:bg-emerald-900/40 transition-colors mb-4 text-lg font-bold tracking-wider">
+            invest
+        </button>
+        
+        <div class="w-full space-y-2">
+            <button onclick="upgrades_people_upgrades('click')" id="upgrade-click" class="w-full py-2 px-2 border border-slate-700 text-slate-400 hover:border-emerald-500 hover:text-emerald-400 text-left text-[11px] font-bold flex justify-between">
+                <span>[+] boostify (+1)</span>
+                <span class="text-emerald-500 font-mono">CR: 10</span>
+            </button>
+            
+            <button onclick="upgrades_people_upgrades('idle')" id="upgrade-idle" class="w-full py-2 px-2 border border-slate-700 text-slate-400 hover:border-emerald-500 hover:text-emerald-400 text-left text-[11px] font-bold flex justify-between">
+                <span>[+] idleify (+1/s)</span>
+                <span class="text-emerald-500 font-mono">CR: 50</span>
+            </button>
+            
+            <button onclick="upgrades_people_upgrades('mult')" id="upgrade-mult" class="w-full py-2 px-2 border border-slate-700 text-slate-400 hover:border-emerald-500 hover:text-emerald-400 text-left text-[11px] font-bold flex justify-between">
+                <span>[*] multiplyify (x1.5)</span>
+                <span class="text-emerald-500 font-mono">CR: 250</span>
+            </button>
+        </div>
+    </div>
+</div>
+</body>
+</html>
