@@ -1,0 +1,34 @@
+name: Stock Updater
+
+on:
+  schedule:
+    - cron: '0 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  refresh-data:
+    runs-on: ubuntu-latest
+    steps:
+      - name: verify repository
+        uses: actions/checkout@v4
+
+      - name: setup Node.js environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20' 
+
+      - name: price sync
+        run: node fetch-data.js 
+        env:
+          FINNHUB_TOKEN: ${{ secrets.FINNHUB_TOKEN }} 
+
+      - name: commit the sync
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add stock-data.json
+          git diff-index --quiet HEAD || git commit -m "[cron] synced baseline core vector datasets"
+          git push
