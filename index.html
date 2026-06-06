@@ -86,6 +86,28 @@
         .customscrollbar::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 4px; }
         .dark .customscrollbar::-webkit-scrollbar-thumb { background: #0f172a; }
         .customscrollbar:hover::-webkit-scrollbar-thumb { background: #10b981; }
+.matrix-glitch-mode {
+    --tw-border-opacity: 1 !important;
+    border-color: rgb(245, 158, 11 / var(--tw-border-opacity)) !important; 
+}
+.matrix-glitch-mode .text-emerald-500,
+.matrix-glitch-mode .text-emerald-400 {
+    color: rgb(251, 191, 36) !important; 
+}
+.matrix-glitch-mode .bg-emerald-950\/20 {
+    background-color: rgba(120, 53, 4, 0.2) !important;
+}
+@keyframes microGlitch {
+    0% { transform: translate(0) }
+    20% { transform: translate(-0.5px, 0.5px) }
+    40% { transform: translate(-0.5px, -0.5px) }
+    60% { transform: translate(0.5px, 0.5px) }
+    80% { transform: translate(0.5px, -0.5px) }
+    100% { transform: translate(0) }
+}
+.glitch-text-active {
+    animation: microGlitch 0.3s infinite steps(2);
+}
     </style>
 </head>
 <body class="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 min-h-screen flex flex-col justify-between transition-colors duration-300 selection:bg-emerald-500 selection:text-slate-950 vhsactive">
@@ -929,6 +951,26 @@ function checkAchivements() {
     });
     if (stateChanged) {
         makeachivementui();
+        githubsecretsreference();
+    }
+}
+function githubsecretsreference() {
+    const isKiloUnlocked = achivement.find(a => a.id === 'kilo_stock')?.unlocked;
+    const isMultUnlocked = achivement.find(a => a.id === 'exponentialhint')?.unlocked;
+    if (isKiloUnlocked || isMultUnlocked) {
+        const clickerModal = document.getElementById('clicker-modal');
+        const mainContent = document.getElementById('maincontent') || document.body; 
+        if (clickerModal && !clickerModal.classList.contains('matrix-glitch-mode')) {
+            clickerModal.classList.add('matrix-glitch-mode');
+            mainContent.classList.add('matrix-glitch-mode');
+            const headers = document.querySelectorAll('#clicker-modal span.font-bold');
+            headers.forEach(el => el.classList.add('glitch-text-active'));
+            console.log("turning on new theme ");
+            if (typeof playretrosound === 'function') {
+                playretrosound(150, 'sawtooth', 0.4);
+                setTimeout(() => playretrosound(90, 'sawtooth', 0.3), 150);
+            }
+        }
     }
 }
 function makeachivementui() {
@@ -976,6 +1018,7 @@ function toggleClicker() {
     modal.classList.toggle('hidden');
     if (isOpening) {
         makeachivementui(); 
+        githubsecretsreference();
         if (!clickerChartInstance) {
             setTimeout(initClickerGraph, 100);
         } else {
