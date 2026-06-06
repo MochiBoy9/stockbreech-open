@@ -873,9 +873,9 @@ let gameData = {
 let achivement = [
     { id: 'first_click', title: 'stock tick', desc: 'you invested into one stock', unlocked: false, check: () => gameData.score >= 1 },
     { id: 'ten_points', title: 'active stocker', desc: 'you invested into ten stocks', unlocked: false, check: () => gameData.score >= 10 },
-    { id: 'hundred_chud', title: 'peak invester', desc: 'you invested into a hundred stocks, isnt this meant to be a stock website?', unlocked: false, check: () => gameData.score >= 100}, // Fixed gameData.Score to gameData.score
+    { id: 'hundred_chud', title: 'peak invester', desc: 'you invested into a hundred stocks, isnt this meant to be a stock website?', unlocked: false, check: () => gameData.score >= 100}, 
     { id: 'kilo_stock', title: 'true stocker', desc: 'you invested into a thousand stocks. you still are not a pro', unlocked: false, check: () => gameData.score >= 1000 },
-    { id: 'ten_thousand', 'you uh... you done yet?', desc: 'you invested into ten thousand stocks, is this not boring to you?', unlocked: false, check: () => gameData.score >= 10000 },
+    { id: 'ten_thousand', title: 'you uh... you done yet?', desc: 'you invested into ten thousand stocks, is this not boring to you?', unlocked: false, check: () => gameData.score >= 10000 },
     { id: 'upgrade_bought', title: 'lazy', desc: 'got an upgrade', unlocked: false, check: () => gameData.clickPower > 1 || gameData.idlePower > 0 || gameData.globalMultiplier > 1 },
     { id: 'exponentialhint', title: 'what could possibly be next? exponentials?', desc: 'set mult to 2x', unlocked: false, check: () => gameData.globalMultiplier >= 2.0 },
     { id: 'chud', title: 'please log off', desc: 'set mult to 5x', unlocked: false,check: () => gameData.globalMultiplier >= 5.0 }
