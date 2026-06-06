@@ -959,16 +959,23 @@ function githubsecretsreference() {
     const isMultUnlocked = achivement.find(a => a.id === 'exponentialhint')?.unlocked;
     if (isKiloUnlocked || isMultUnlocked) {
         const clickerModal = document.getElementById('clicker-modal');
-        const mainContent = document.getElementById('maincontent') || document.body; 
+        const mainContent = document.getElementById('maincontent') || document.body;
         if (clickerModal && !clickerModal.classList.contains('matrix-glitch-mode')) {
             clickerModal.classList.add('matrix-glitch-mode');
             mainContent.classList.add('matrix-glitch-mode');
-            const headers = document.querySelectorAll('#clicker-modal span.font-bold');
+            const headers = document.querySelectorAll('#clicker-modal span.font-bold, h1, h2, h3');
             headers.forEach(el => el.classList.add('glitch-text-active'));
-            console.log("turning on new theme ");
-            if (typeof playretrosound === 'function') {
-                playretrosound(150, 'sawtooth', 0.4);
-                setTimeout(() => playretrosound(90, 'sawtooth', 0.3), 150);
+            if (typeof stockChart !== 'undefined' && stockChart.data) {
+                stockChart.data.datasets.forEach(dataset => {
+                    dataset.borderColor = '#f59e0b';
+                    dataset.backgroundColor = 'rgba(245, 158, 11, 0.05)';
+                });
+                stockChart.update();
+            }
+            if (clickerChartInstance) {
+                clickerChartInstance.data.datasets[0].borderColor = '#f59e0b';
+                clickerChartInstance.data.datasets[0].backgroundColor = 'rgba(245, 158, 11, 0.05)';
+                clickerChartInstance.update();
             }
         }
     }
