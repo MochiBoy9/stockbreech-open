@@ -863,6 +863,7 @@ window.addEventListener('mousemove', (e) => {
         document.documentElement.style.setProperty('--mouse-y', `${e.clientY}px`);
     }
 });
+// --- INDUSTRIAL CLICKER CORE ARCHITECTURE & ACHIVEMENT MATRIX ---
 let gameData = {
     score: 0,
     clickPower: 1,
@@ -870,6 +871,13 @@ let gameData = {
     globalMultiplier: 1.0,
     costs: { click: 10, idle: 50, mult: 250 }
 };
+let achivement = [
+    { id: 'first_click', title: 'stock tick', desc: 'you invested into one stock', unlocked: false, check: () => gameData.score >= 1 },
+    { id: 'ten_points', title: 'active stocker', desc: 'you invested into ten stocks', unlocked: false, check: () => gameData.score >= 10 },
+    { id: 'kilo_data', title: 'true stocker', desc: 'you invested into a thousand stocks. you still are not a pro', unlocked: false, check: () => gameData.score >= 1000 },
+    { id: 'upgrade_bought', title: 'lazy', desc: 'got an upgrade', unlocked: false, check: () => gameData.clickPower > 1 || gameData.idlePower > 0 || gameData.globalMultiplier > 1 },
+    { id: 'overclock', title: 'what could possibly be next? exponentials?', desc: 'set mult to 2x', unlocked: false, check: () => gameData.globalMultiplier >= 2.0 }
+];
 
 let clickerChartInstance = null;
 let clickerGraphHistory = Array(20).fill(0); 
@@ -877,10 +885,7 @@ let clickerGraphLabels = Array(20).fill('');
 
 function initClickerGraph() {
     const canvasElement = document.getElementById('clickerChart');
-    if (!canvasElement) {
-        console.warn("Clicker Chart context element missing from viewport.");
-        return;
-    }
+    if (!canvasElement) return;
 
     const ctx = canvasElement.getContext('2d');
     clickerChartInstance = new Chart(ctx, {
@@ -911,28 +916,69 @@ function initClickerGraph() {
         }
     });
 }
+function checkAchivements() {
+    let stateChanged = false;
+    achivement.forEach(ach => {
+        if (!ach.unlocked && ach.check()) {
+            ach.unlocked = true;
+            stateChanged = true;
+            if (typeof playretrosound === 'function') {
+                playretrosound(880, 'sine', 0.08);
+                setTimeout(() => playretrosound(1320, 'sine', 0.12), 70);
+            }
+        }
+    });
+    
+    if (stateChanged) {
+        makeachivementui();
+    }
+}
+function makeachivementui() {
+    const container = document.getElementById('achivement-display');
+    if (!container) return;
+    container.innerHTML = '';
+    achivement.forEach(ach => {
+        if (ach.unlocked) {
+            container.innerHTML += `
+                <div class="text-emerald-400 border-l border-emerald-500 pl-1.5 dynamic-fade">
+                    <span class="font-bold">[✓] ${ach.title}:</span> ${ach.desc}
+                </div>`;
+        } else {
+            container.innerHTML += `
+                <div class="text-slate-600 pl-1.5">
+                    <span class="font-bold">[ ] LOCKED:</span> ???
+                </div>`;
+        }
+    });
+}
 setInterval(function() {
     if (gameData.idlePower > 0) {
         gameData.score += (gameData.idlePower * gameData.globalMultiplier);
     }
     tickClickerGraph();
+    checkAchivements();
     updateClickerUI();
 }, 1000);
+
 function tickClickerGraph() {
     if (!clickerChartInstance) return;
+    
     clickerGraphHistory.push(Math.floor(gameData.score));
     clickerGraphLabels.push('');
+    
     if (clickerGraphHistory.length > 25) {
         clickerGraphHistory.shift();
         clickerGraphLabels.shift();
     }
     clickerChartInstance.update('none'); 
 }
+
 function toggleClicker() {
     const modal = document.getElementById('clicker-modal');
     const isOpening = modal.classList.contains('hidden');
     modal.classList.toggle('hidden');
     if (isOpening) {
+        makeachivementui(); 
         if (!clickerChartInstance) {
             setTimeout(initClickerGraph, 100);
         } else {
@@ -946,6 +992,7 @@ function toggleClicker() {
 function mineData() {
     gameData.score += (gameData.clickPower * gameData.globalMultiplier);
     tickClickerGraph();
+    checkAchivements();
     updateClickerUI();
     if (typeof playretrosound === 'function') {
         playretrosound(440, 'square', 0.03); 
@@ -970,8 +1017,8 @@ function upgrades_people_upgrades(type) {
             gameData.costs.mult = Math.floor(cost * 3.2);
             if (typeof playretrosound === 'function') playretrosound(850, 'sawtooth', 0.1);
         }
-        
         tickClickerGraph();
+        checkAchivements();
         updateClickerUI();
     }
 }
@@ -983,6 +1030,13 @@ function updateClickerUI() {
     document.getElementById('upgrade-idle').querySelector('.text-emerald-500').innerText = `CR: ${gameData.costs.idle}`;
     document.getElementById('upgrade-mult').querySelector('.text-emerald-500').innerText = `CR: ${gameData.costs.mult}`;
 }
+window.addEventListener('mousemove', (e) => {
+    const isVhsOn = document.body.classList.contains('vhsactive') || document.documentElement.classList.contains('vhsactive');
+    if (isVhsOn) {
+        document.documentElement.style.setProperty('--mouse-x', `${e.clientX}px`);
+        document.documentElement.style.setProperty('--mouse-y', `${e.clientY}px`);
+    }
+});
     </script>
   <button onclick="toggleClicker()" class="fixed bottom-4 left-4 px-3 py-1 border border-slate-700 text-slate-500 hover:text-emerald-400 hover:border-emerald-400 transition-colors text-xs z-40 font-bold">
     stockmarkert
@@ -994,6 +1048,14 @@ function updateClickerUI() {
         <div class="w-full flex justify-between mb-4 border-b border-slate-700 pb-2">
             <span class="text-emerald-500 text-sm font-bold">stockmarker</span>
             <button onclick="toggleClicker()" class="text-red-500 hover:text-red-400 font-bold">[X]</button>
+        </div>
+
+        <div class="w-full mt-4 border border-slate-800 bg-black/60 p-2 rounded">
+            <div class="text-[9px] text-slate-600 font-bold font-mono uppercase tracking-wider mb-1 border-b border-slate-800 pb-0.5">
+                achivements
+            </div>
+            <div id="achivement-display" class="h-16 overflow-y-auto font-mono text-[10px] space-y-1 pr-1 custom-scrollbar">
+                </div>
         </div>
 
         <div class="w-full flex justify-between text-[10px] text-slate-500 font-mono px-1 mb-2">
