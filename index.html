@@ -863,7 +863,6 @@ window.addEventListener('mousemove', (e) => {
         document.documentElement.style.setProperty('--mouse-y', `${e.clientY}px`);
     }
 });
-// --- INDUSTRIAL CLICKER CORE ARCHITECTURE & ACHIVEMENT MATRIX ---
 let gameData = {
     score: 0,
     clickPower: 1,
@@ -874,20 +873,17 @@ let gameData = {
 let achivement = [
     { id: 'first_click', title: 'stock tick', desc: 'you invested into one stock', unlocked: false, check: () => gameData.score >= 1 },
     { id: 'ten_points', title: 'active stocker', desc: 'you invested into ten stocks', unlocked: false, check: () => gameData.score >= 10 },
-    { id: 'hundred_chud', title: 'peak invester', desc: 'you invested into a hundred stocks, isnt this meant to be a stock website?', unlocked: false, check: () => gameData.Score >= 100},
+    { id: 'hundred_chud', title: 'peak invester', desc: 'you invested into a hundred stocks, isnt this meant to be a stock website?', unlocked: false, check: () => gameData.score >= 100}, // Fixed gameData.Score to gameData.score
     { id: 'kilo_stock', title: 'true stocker', desc: 'you invested into a thousand stocks. you still are not a pro', unlocked: false, check: () => gameData.score >= 1000 },
     { id: 'upgrade_bought', title: 'lazy', desc: 'got an upgrade', unlocked: false, check: () => gameData.clickPower > 1 || gameData.idlePower > 0 || gameData.globalMultiplier > 1 },
     { id: 'exponentialhint', title: 'what could possibly be next? exponentials?', desc: 'set mult to 2x', unlocked: false, check: () => gameData.globalMultiplier >= 2.0 }
 ];
-
 let clickerChartInstance = null;
 let clickerGraphHistory = Array(20).fill(0); 
 let clickerGraphLabels = Array(20).fill('');
-
 function initClickerGraph() {
     const canvasElement = document.getElementById('clickerChart');
     if (!canvasElement) return;
-
     const ctx = canvasElement.getContext('2d');
     clickerChartInstance = new Chart(ctx, {
         type: 'line',
@@ -929,25 +925,26 @@ function checkAchivements() {
             }
         }
     });
-    
     if (stateChanged) {
         makeachivementui();
     }
 }
 function makeachivementui() {
-    const container = document.getElementById('achivement-display');
-    if (!container) return;
+    const container = document.getElementById('achivement-display'); // Make sure your HTML ID matches this!
+    if (!container) return; 
     container.innerHTML = '';
     achivement.forEach(ach => {
         if (ach.unlocked) {
             container.innerHTML += `
-                <div class="text-emerald-400 border-l border-emerald-500 pl-1.5 dynamic-fade">
-                    <span class="font-bold">[✓] ${ach.title}:</span> ${ach.desc}
+                <div class="text-emerald-400 border-l-2 border-emerald-500 pl-2 py-1 bg-emerald-950/20 rounded font-mono text-[11px] animate-fade-in">
+                    <span class="font-bold">[✓] ${ach.title}</span>
+                    <div class="text-slate-300 text-[10px] mt-0.5">${ach.desc}</div>
                 </div>`;
         } else {
             container.innerHTML += `
-                <div class="text-slate-600 pl-1.5">
-                    <span class="font-bold">[ ] LOCKED:</span> ???
+                <div class="text-slate-400 border-l border-slate-800 pl-2 py-1 font-mono text-[11px] opacity-60">
+                    <span class="font-bold">[ ] ${ach.title}</span>
+                    <div class="text-slate-500 text-[9px] tracking-wider mt-0.5 uppercase select-none">// DATA_REDACTED</div>
                 </div>`;
         }
     });
@@ -960,22 +957,19 @@ setInterval(function() {
     checkAchivements();
     updateClickerUI();
 }, 1000);
-
 function tickClickerGraph() {
     if (!clickerChartInstance) return;
-    
     clickerGraphHistory.push(Math.floor(gameData.score));
     clickerGraphLabels.push('');
-    
     if (clickerGraphHistory.length > 25) {
         clickerGraphHistory.shift();
         clickerGraphLabels.shift();
     }
     clickerChartInstance.update('none'); 
 }
-
 function toggleClicker() {
     const modal = document.getElementById('clicker-modal');
+    if(!modal) return;
     const isOpening = modal.classList.contains('hidden');
     modal.classList.toggle('hidden');
     if (isOpening) {
@@ -1003,6 +997,7 @@ function upgrades_people_upgrades(type) {
     let cost = gameData.costs[type];
     if (gameData.score >= cost) {
         gameData.score -= cost; 
+        
         if (type === 'click') {
             gameData.clickPower += 1;
             gameData.costs.click = Math.floor(cost * 1.5);
@@ -1023,6 +1018,7 @@ function upgrades_people_upgrades(type) {
         updateClickerUI();
     }
 }
+
 function updateClickerUI() {
     document.getElementById('clicker-score').innerText = Math.floor(gameData.score);
     document.getElementById('stat-pps').innerText = `AUTO: ${(gameData.idlePower * gameData.globalMultiplier).toFixed(1)}/s`;
@@ -1083,7 +1079,7 @@ window.addEventListener('mousemove', (e) => {
                 <div class="w-full flex justify-between mb-4 border-b border-slate-700 pb-2">
                     <span class="text-emerald-500 text-sm font-bold">achivements</span>
                 </div>
-                <div id="achivements-display" class="h-80 overflow-y-auto font-mono text-[11px] space-y-3 pr-1 custom-scrollbar">
+                <div id="achivement-display" class="h-80 overflow-y-auto font-mono text-[11px] space-y-3 pr-1 custom-scrollbar">
                     </div>
             </div>
             <div class="text-[9px] text-slate-600 font-mono pt-2 border-t border-slate-800 mt-4">
