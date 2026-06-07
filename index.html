@@ -1052,17 +1052,17 @@ function upgrades_people_upgrades(type) {
         
         if (type === 'click') {
             gameData.clickPower += 1;
-            gameData.costs.click = Math.floor(cost * 1.5);
+            gameData.costs.click = Math.floor(cost * 1.2);
             if (typeof playretrosound === 'function') playretrosound(550, 'sine', 0.06);
         } 
         else if (type === 'idle') {
             gameData.idlePower += 1;
-            gameData.costs.idle = Math.floor(cost * 1.6);
+            gameData.costs.idle = Math.floor(cost * 1.3);
             if (typeof playretrosound === 'function') playretrosound(650, 'triangle', 0.06);
         } 
         else if (type === 'mult') {
             gameData.globalMultiplier += 0.5;
-            gameData.costs.mult = Math.floor(cost * 3.2);
+            gameData.costs.mult = Math.floor(cost * 2.3);
             if (typeof playretrosound === 'function') playretrosound(850, 'sawtooth', 0.1);
         }
         tickClickerGraph();
