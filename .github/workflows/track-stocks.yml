@@ -14,8 +14,10 @@ jobs:
     steps:
       - name: verify repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 
 
-      - name: setup Node.js environment
+      - name: start node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20' 
@@ -30,5 +32,16 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add stock-data.json
-          git diff-index --quiet HEAD || git commit -m "[cron] synced baseline core vector datasets"
-          git push
+          
+          # Check if the JSON file actually changed before committing
+          if ! git diff-index --quiet HEAD; then
+            git commit -m "[cron] synced baseline core vector datasets"
+            
+            # Pull any manual changes you made to the repo to prevent push conflicts
+            git pull --rebase origin main 
+            
+            git push
+              echo "update all good"
+          else
+            echo "no change detected"
+          fi
