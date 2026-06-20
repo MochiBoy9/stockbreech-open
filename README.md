@@ -40,3 +40,27 @@ I'd say this part of the website is more enjoyable than the website as a whole..
 - My mom, a really good backend developer, helped make the backend work and helped assist me when I needed it the most.
 - My CS Teacher, who teaches HTML and Javascript, helped assist with the frontend and supply me with learning materials to help get this project done.
 
+# Clarification on Project
+(This section is more for anyone reviewing my project on external sites rather than the general public. If you are a common user, please skip this section!)
+
+
+
+
+
+Nearly all of this project could not be tracked using sources such as Hackatime, the VS Code Application, or typical sources you'd use to track hours. This is due to school policy, as I did this project on the school-issued Chromebook, and as per typical school policy, they did not allow us to use linux applications, external extensions, and blocked the ability to use certain github abilities (which, by some god stupid curse, included permission to view the github codespace extensions), so I could not install hackatime on my chromebook. For that, I apologize, but I had no way to change my school from allowing me to change these settings, and I was not allowed to use my main computer during this time since I was grounded. Which, to any students reading this, please don't get anything lower than a D on your report card EVER.
+
+I'd also like to state that i **did in fact use AI on this project.** If this project was shipped on sources such as Hack Club, you should know this, but I shall clarify to others what I used AI on.
+
+NOTE: **Assistance** means that the AI model assisted with the concept/idea, and potentially created small segments for example, but **I still worked on it mostly on my own.**
+
+I used AI for:
+- design choices before I moved to a cyberpunk theme, which by then I got my CS teacher to help me with design choices.
+- design assistance when I needed help when my teacher was not there.
+- backend assistance when I needed help when my mom was not there.
+- code assistance/implementation for the themes such as color changing or filters.
+- SVG Creation/Grabbing (you'd be crazy if you think i'd genuinely make SVGs by hand).
+- Comprehension and assistance on heavy/in-depth javascript.
+- Generation of media links/svgs
+- **HEAVY CODE CLEANING/POLISHING DURING DESIGN/CREATION PROCESSES.**
+
+It may look like a lot, but I promise this project was still mostly created by man. Which, thank you to my mom and CS teacher for helping me with this project. I only used AI on things when I didn't have their help or when I needed deeper understanding/help.
